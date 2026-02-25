@@ -255,8 +255,12 @@ function handleTouchMove(event) {
 function handleTouchEnd() {
   clearTimeout(touchTimeout)
 
-  if (touchSource.value && dragOverPos.value) {
-    onDrop(touchSource.value.sectionName, dragOverPos.value)
+  if (touchSource.value && dragOverPos.value && touchSource.value.pos !== dragOverPos.value) {
+    const sourcePos = touchSource.value.pos
+    const targetPos = dragOverPos.value
+    const tempPlayer = { ...sourcePos.player }
+    sourcePos.player = { ...targetPos.player }
+    targetPos.player = tempPlayer
   }
 
   if (touchClone.value) {
