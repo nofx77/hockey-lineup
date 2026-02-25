@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -7,6 +7,11 @@ const { t } = useI18n()
 const props = defineProps({
   player: { type: Object, required: true },
   positionLabel: { type: String, default: '' },
+})
+
+const shortName = computed(() => {
+  const parts = props.player.name.trim().split(/\s+/)
+  return parts.map(p => p.charAt(0).toUpperCase() + '.').join(' ')
 })
 
 const emit = defineEmits(['update'])
@@ -41,18 +46,21 @@ function cancelEdit() {
 
 <template>
   <div
-    class="player-card group flex items-center justify-between rounded-lg border-2 border-section-border bg-card-bg px-4 py-3 transition-shadow hover:shadow-md select-none"
+    class="player-card group flex items-center justify-between rounded-lg border-2 border-section-border bg-card-bg px-2 py-1.5 md:px-4 md:py-3 transition-shadow hover:shadow-md select-none"
     :class="editing ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'"
     :draggable="!editing"
     @click.stop="startEdit"
   >
     <div v-if="!editing" class="flex-1 min-w-0">
-      <div class="text-sm font-semibold text-navy truncate">{{ player.name }}</div>
-      <div class="text-xs text-navy/60">{{ positionLabel }}</div>
+      <div class="text-xs md:text-sm font-semibold text-navy truncate">
+        <span class="md:hidden">{{ shortName }}</span>
+        <span class="hidden md:inline">{{ player.name }}</span>
+      </div>
+      <div class="text-[10px] md:text-xs text-navy/60 hidden md:block">{{ positionLabel }}</div>
     </div>
-    <div v-if="!editing" class="flex items-center gap-2 ml-2 shrink-0">
-      <span v-if="player.number !== ''" class="text-2xl font-extrabold text-navy">#{{ player.number }}</span>
-      <svg class="w-4 h-4 text-navy/30" viewBox="0 0 16 16" fill="currentColor">
+    <div v-if="!editing" class="flex items-center gap-1 md:gap-2 ml-1 md:ml-2 shrink-0">
+      <span v-if="player.number !== ''" class="text-base md:text-2xl font-extrabold text-navy">#{{ player.number }}</span>
+      <svg class="w-3 h-3 md:w-4 md:h-4 text-navy/30 hidden md:block" viewBox="0 0 16 16" fill="currentColor">
         <circle cx="6" cy="3" r="1.5" />
         <circle cx="10" cy="3" r="1.5" />
         <circle cx="6" cy="8" r="1.5" />

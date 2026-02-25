@@ -327,7 +327,7 @@ function updatePlayer(data) {
 
         <div v-for="(trio, gIdx) in lineup.attaquants" :key="trio.nameKey" class="mb-6 last:mb-0">
           <h3 class="text-base font-bold text-navy mb-2">{{ $t(trio.nameKey) }}</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-3 gap-1.5 md:gap-3">
             <div
               v-for="(pos, pIdx) in trio.positions"
               :key="pos.labelKey"
@@ -342,7 +342,7 @@ function updatePlayer(data) {
               @touchstart="onTouchStart('attaquants', pos, $event)"
               @click.capture="onCardClick"
             >
-              <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
+              <span class="text-[10px] md:text-xs font-semibold text-blue-accent uppercase tracking-wide mb-0.5 md:mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
                 :player="pos.player"
                 :position-label="$t(pos.labelKey)"
@@ -363,7 +363,7 @@ function updatePlayer(data) {
 
           <div v-for="(duo, gIdx) in lineup.defenseurs" :key="duo.nameKey" class="mb-6 last:mb-0">
             <h3 class="text-base font-bold text-navy mb-2">{{ $t(duo.nameKey) }}</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-1.5 md:gap-3">
               <div
                 v-for="(pos, pIdx) in duo.positions"
                 :key="pos.labelKey"
@@ -378,7 +378,7 @@ function updatePlayer(data) {
                 @touchstart="onTouchStart('defenseurs', pos, $event)"
                 @click.capture="onCardClick"
               >
-                <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
+                <span class="text-[10px] md:text-xs font-semibold text-blue-accent uppercase tracking-wide mb-0.5 md:mb-1 block">{{ $t(pos.labelKey) }}</span>
                 <PlayerCard
                   :player="pos.player"
                   :position-label="$t(pos.labelKey)"
@@ -411,7 +411,7 @@ function updatePlayer(data) {
               @touchstart="onTouchStart('gardien', pos, $event)"
               @click.capture="onCardClick"
             >
-              <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
+              <span class="text-[10px] md:text-xs font-semibold text-blue-accent uppercase tracking-wide mb-0.5 md:mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
                 :player="pos.player"
                 :position-label="$t(pos.labelKey)"
