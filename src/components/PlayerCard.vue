@@ -28,8 +28,8 @@ function startEdit() {
 function saveEdit() {
   emit('update', {
     id: props.player.id,
-    name: editName.value || props.player.name,
-    number: editNumber.value || props.player.number,
+    name: editName.value,
+    number: editNumber.value !== '' ? editNumber.value : '',
   })
   editing.value = false
 }
@@ -51,7 +51,7 @@ function cancelEdit() {
       <div class="text-xs text-navy/60">{{ positionLabel }}</div>
     </div>
     <div v-if="!editing" class="flex items-center gap-2 ml-2 shrink-0">
-      <span class="text-2xl font-extrabold text-navy">#{{ player.number }}</span>
+      <span v-if="player.number !== ''" class="text-2xl font-extrabold text-navy">#{{ player.number }}</span>
       <svg class="w-4 h-4 text-navy/30" viewBox="0 0 16 16" fill="currentColor">
         <circle cx="6" cy="3" r="1.5" />
         <circle cx="10" cy="3" r="1.5" />
@@ -74,9 +74,9 @@ function cancelEdit() {
       <div class="flex gap-2">
         <input
           v-model="editNumber"
-          type="number"
-          min="0"
-          max="99"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
           class="w-20 rounded border border-section-border px-2 py-1 text-sm text-navy bg-white focus:outline-none focus:ring-2 focus:ring-navy/30"
           placeholder="#"
           @keydown.esc="cancelEdit"
