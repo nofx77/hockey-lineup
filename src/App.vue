@@ -185,6 +185,92 @@ function onDragEnd() {
   dragOverPos.value = null
 }
 
+// Touch drag & drop for mobile
+const touchClone = ref(null)
+const touchSource = ref(null)
+let touchTimeout = null
+let touchStartX = 0
+let touchStartY = 0
+
+function onTouchStart(sectionName, pos, event) {
+  const touch = event.touches[0]
+  touchStartX = touch.clientX
+  touchStartY = touch.clientY
+
+  touchTimeout = setTimeout(() => {
+    touchSource.value = { sectionName, pos }
+
+    const target = event.currentTarget
+    const rect = target.getBoundingClientRect()
+    const clone = target.cloneNode(true)
+    clone.style.position = 'fixed'
+    clone.style.width = rect.width + 'px'
+    clone.style.left = (touch.clientX - rect.width / 2) + 'px'
+    clone.style.top = (touch.clientY - rect.height / 2) + 'px'
+    clone.style.pointerEvents = 'none'
+    clone.style.zIndex = '1000'
+    clone.style.opacity = '0.85'
+    clone.style.transform = 'rotate(2deg)'
+    document.body.appendChild(clone)
+    touchClone.value = clone
+  }, 150)
+}
+
+function onTouchMove(event) {
+  const touch = event.touches[0]
+
+  // Cancel drag if not yet activated and finger moved little
+  if (!touchSource.value) {
+    const dx = touch.clientX - touchStartX
+    const dy = touch.clientY - touchStartY
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      clearTimeout(touchTimeout)
+    }
+    return
+  }
+
+  event.preventDefault()
+
+  // Move clone
+  if (touchClone.value) {
+    const rect = touchClone.value.getBoundingClientRect()
+    touchClone.value.style.left = (touch.clientX - rect.width / 2) + 'px'
+    touchClone.value.style.top = (touch.clientY - rect.height / 2) + 'px'
+  }
+
+  // Detect drop target
+  const el = document.elementFromPoint(touch.clientX, touch.clientY)
+  if (el) {
+    const wrapper = el.closest('[data-section]')
+    if (wrapper && wrapper.dataset.section === touchSource.value.sectionName) {
+      const groupIdx = parseInt(wrapper.dataset.groupIndex)
+      const posIdx = parseInt(wrapper.dataset.posIndex)
+      const targetPos = lineup[wrapper.dataset.section][groupIdx].positions[posIdx]
+      dragOverPos.value = targetPos
+    } else {
+      dragOverPos.value = null
+    }
+  } else {
+    dragOverPos.value = null
+  }
+}
+
+function onTouchEnd() {
+  clearTimeout(touchTimeout)
+
+  if (touchSource.value && dragOverPos.value) {
+    onDrop(touchSource.value.sectionName, dragOverPos.value)
+  }
+
+  // Cleanup
+  if (touchClone.value) {
+    touchClone.value.remove()
+    touchClone.value = null
+  }
+  touchSource.value = null
+  dragOverPos.value = null
+}
+
 function updatePlayer(data) {
   const sections = ['attaquants', 'defenseurs', 'gardien']
   for (const sectionName of sections) {
@@ -202,7 +288,7 @@ function updatePlayer(data) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-page-bg pb-12">
+  <div class="min-h-screen bg-page-bg pb-12" @touchmove="onTouchMove" @touchend="onTouchEnd">
     <!-- Header -->
     <header class="bg-navy text-white py-5 px-6 mb-8">
       <div class="max-w-5xl mx-auto flex items-center gap-5">
@@ -225,17 +311,21 @@ function updatePlayer(data) {
       <section class="bg-white rounded-2xl border-2 border-dashed border-section-border p-4 md:p-6 mb-6">
         <h2 class="text-xl font-extrabold text-navy mb-4">{{ $t('sections.attaquants') }}</h2>
 
-        <div v-for="trio in lineup.attaquants" :key="trio.nameKey" class="mb-6 last:mb-0">
+        <div v-for="(trio, gIdx) in lineup.attaquants" :key="trio.nameKey" class="mb-6 last:mb-0">
           <h3 class="text-base font-bold text-navy mb-2">{{ $t(trio.nameKey) }}</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div
-              v-for="pos in trio.positions"
+              v-for="(pos, pIdx) in trio.positions"
               :key="pos.labelKey"
               class="rounded-lg p-1 -m-1 transition-colors"
               :class="{ 'bg-navy/10': dragOverPos === pos && dragSource?.pos !== pos }"
+              data-section="attaquants"
+              :data-group-index="gIdx"
+              :data-pos-index="pIdx"
               @dragover.prevent="onDragOver(pos)"
               @dragleave="onDragLeave"
               @drop="onDrop('attaquants', pos)"
+              @touchstart="onTouchStart('attaquants', pos, $event)"
             >
               <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
@@ -256,17 +346,21 @@ function updatePlayer(data) {
         <section class="bg-white rounded-2xl border-2 border-dashed border-section-border p-4 md:p-6">
           <h2 class="text-xl font-extrabold text-navy mb-4">{{ $t('sections.defenseurs') }}</h2>
 
-          <div v-for="duo in lineup.defenseurs" :key="duo.nameKey" class="mb-6 last:mb-0">
+          <div v-for="(duo, gIdx) in lineup.defenseurs" :key="duo.nameKey" class="mb-6 last:mb-0">
             <h3 class="text-base font-bold text-navy mb-2">{{ $t(duo.nameKey) }}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div
-                v-for="pos in duo.positions"
+                v-for="(pos, pIdx) in duo.positions"
                 :key="pos.labelKey"
                 class="rounded-lg p-1 -m-1 transition-colors"
                 :class="{ 'bg-navy/10': dragOverPos === pos && dragSource?.pos !== pos }"
+                data-section="defenseurs"
+                :data-group-index="gIdx"
+                :data-pos-index="pIdx"
                 @dragover.prevent="onDragOver(pos)"
                 @dragleave="onDragLeave"
                 @drop="onDrop('defenseurs', pos)"
+                @touchstart="onTouchStart('defenseurs', pos, $event)"
               >
                 <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
                 <PlayerCard
@@ -285,16 +379,20 @@ function updatePlayer(data) {
         <section class="bg-white rounded-2xl border-2 border-dashed border-section-border p-4 md:p-6 lg:w-72">
           <h2 class="text-xl font-extrabold text-navy mb-4">{{ $t('sections.gardien') }}</h2>
 
-          <div v-for="group in lineup.gardien" :key="group.nameKey" class="mb-6 last:mb-0">
+          <div v-for="(group, gIdx) in lineup.gardien" :key="group.nameKey" class="mb-6 last:mb-0">
             <h3 class="text-base font-bold text-navy mb-2">{{ $t(group.nameKey) }}</h3>
             <div
-              v-for="pos in group.positions"
+              v-for="(pos, pIdx) in group.positions"
               :key="pos.labelKey"
               class="rounded-lg p-1 -m-1 transition-colors"
               :class="{ 'bg-navy/10': dragOverPos === pos && dragSource?.pos !== pos }"
+              data-section="gardien"
+              :data-group-index="gIdx"
+              :data-pos-index="pIdx"
               @dragover.prevent="onDragOver(pos)"
               @dragleave="onDragLeave"
               @drop="onDrop('gardien', pos)"
+              @touchstart="onTouchStart('gardien', pos, $event)"
             >
               <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
