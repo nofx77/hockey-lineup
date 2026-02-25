@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LANG_KEY } from './i18n/index.js'
 import PlayerCard from './components/PlayerCard.vue'
@@ -188,38 +188,38 @@ function onDragEnd() {
 // Touch drag & drop for mobile
 const touchClone = ref(null)
 const touchSource = ref(null)
+const touchDragged = ref(false)
 let touchTimeout = null
 let touchStartX = 0
 let touchStartY = 0
+let cloneOffsetX = 0
+let cloneOffsetY = 0
 
 function onTouchStart(sectionName, pos, event) {
   const touch = event.touches[0]
   touchStartX = touch.clientX
   touchStartY = touch.clientY
+  touchDragged.value = false
 
+  const target = event.currentTarget
   touchTimeout = setTimeout(() => {
+    touchDragged.value = true
     touchSource.value = { sectionName, pos }
 
-    const target = event.currentTarget
     const rect = target.getBoundingClientRect()
+    cloneOffsetX = touch.clientX - rect.left
+    cloneOffsetY = touch.clientY - rect.top
+
     const clone = target.cloneNode(true)
-    clone.style.position = 'fixed'
-    clone.style.width = rect.width + 'px'
-    clone.style.left = (touch.clientX - rect.width / 2) + 'px'
-    clone.style.top = (touch.clientY - rect.height / 2) + 'px'
-    clone.style.pointerEvents = 'none'
-    clone.style.zIndex = '1000'
-    clone.style.opacity = '0.85'
-    clone.style.transform = 'rotate(2deg)'
+    clone.style.cssText = `position:fixed;width:${rect.width}px;left:${rect.left}px;top:${rect.top}px;pointer-events:none;z-index:1000;opacity:0.85;transform:rotate(2deg);transition:none;`
     document.body.appendChild(clone)
     touchClone.value = clone
-  }, 150)
+  }, 200)
 }
 
-function onTouchMove(event) {
+function handleTouchMove(event) {
   const touch = event.touches[0]
 
-  // Cancel drag if not yet activated and finger moved little
   if (!touchSource.value) {
     const dx = touch.clientX - touchStartX
     const dy = touch.clientY - touchStartY
@@ -231,14 +231,11 @@ function onTouchMove(event) {
 
   event.preventDefault()
 
-  // Move clone
   if (touchClone.value) {
-    const rect = touchClone.value.getBoundingClientRect()
-    touchClone.value.style.left = (touch.clientX - rect.width / 2) + 'px'
-    touchClone.value.style.top = (touch.clientY - rect.height / 2) + 'px'
+    touchClone.value.style.left = (touch.clientX - cloneOffsetX) + 'px'
+    touchClone.value.style.top = (touch.clientY - cloneOffsetY) + 'px'
   }
 
-  // Detect drop target
   const el = document.elementFromPoint(touch.clientX, touch.clientY)
   if (el) {
     const wrapper = el.closest('[data-section]')
@@ -255,20 +252,37 @@ function onTouchMove(event) {
   }
 }
 
-function onTouchEnd() {
+function handleTouchEnd() {
   clearTimeout(touchTimeout)
 
   if (touchSource.value && dragOverPos.value) {
     onDrop(touchSource.value.sectionName, dragOverPos.value)
   }
 
-  // Cleanup
   if (touchClone.value) {
     touchClone.value.remove()
     touchClone.value = null
   }
   touchSource.value = null
   dragOverPos.value = null
+}
+
+// Register touchmove/touchend with { passive: false } so preventDefault() works
+onMounted(() => {
+  document.addEventListener('touchmove', handleTouchMove, { passive: false })
+  document.addEventListener('touchend', handleTouchEnd)
+})
+onUnmounted(() => {
+  document.removeEventListener('touchmove', handleTouchMove)
+  document.removeEventListener('touchend', handleTouchEnd)
+})
+
+function onCardClick(event) {
+  if (touchDragged.value) {
+    event.stopPropagation()
+    touchDragged.value = false
+    return
+  }
 }
 
 function updatePlayer(data) {
@@ -288,7 +302,7 @@ function updatePlayer(data) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-page-bg pb-12" @touchmove="onTouchMove" @touchend="onTouchEnd">
+  <div class="min-h-screen bg-page-bg pb-12">
     <!-- Header -->
     <header class="bg-navy text-white py-5 px-6 mb-8">
       <div class="max-w-5xl mx-auto flex items-center gap-5">
@@ -326,6 +340,7 @@ function updatePlayer(data) {
               @dragleave="onDragLeave"
               @drop="onDrop('attaquants', pos)"
               @touchstart="onTouchStart('attaquants', pos, $event)"
+              @click.capture="onCardClick"
             >
               <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
@@ -361,6 +376,7 @@ function updatePlayer(data) {
                 @dragleave="onDragLeave"
                 @drop="onDrop('defenseurs', pos)"
                 @touchstart="onTouchStart('defenseurs', pos, $event)"
+                @click.capture="onCardClick"
               >
                 <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
                 <PlayerCard
@@ -393,6 +409,7 @@ function updatePlayer(data) {
               @dragleave="onDragLeave"
               @drop="onDrop('gardien', pos)"
               @touchstart="onTouchStart('gardien', pos, $event)"
+              @click.capture="onCardClick"
             >
               <span class="text-xs font-semibold text-blue-accent uppercase tracking-wide mb-1 block">{{ $t(pos.labelKey) }}</span>
               <PlayerCard
